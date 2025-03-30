@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 
+import { Button } from "./ui/button";
+
+import PriceInput from "./priceInput";
+
 export default function Payment() {
   const [checkoutUrl, setCheckoutUrl] = useState("");
   const [stripeAccountId, setStripeAccountId] = useState("");
+  const [showSTatic, setShowStatic] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -27,7 +32,7 @@ export default function Payment() {
     })();
   }, []);
 
-  const createCheckout = async () => {
+  const createCheckout = async (amount: number) => {
     const access_token = localStorage.getItem("access_token");
     const res = await fetch(`http://localhost:8000/checkout`, {
       method: "POST",
@@ -35,7 +40,10 @@ export default function Payment() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${access_token}`,
       },
-      body: JSON.stringify({ amount: 500, stripe_id: stripeAccountId }),
+      body: JSON.stringify({
+        amount: amount,
+        stripe_id: stripeAccountId,
+      }),
     });
     const data = await res.json();
     setCheckoutUrl(data.url);
@@ -43,13 +51,22 @@ export default function Payment() {
 
   return (
     <div className="p-6 flex flex-col items-center space-y-4">
-      <button
-        onClick={createCheckout}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
+      <PriceInput onSubmit={(amount: number) => createCheckout(amount)} />
+      <Button
+        onClick={() => {
+          setShowStatic(!showSTatic);
+        }}
       >
-        Generate QR
-      </button>
-
+        Show static QR
+      </Button>
+      {showSTatic && (
+        <div className="mt-4">
+          <QRCodeCanvas
+            value="https://buy.stripe.com/test_00geWl3rr9Yv8Ew4gg"
+            size={200}
+          />
+        </div>
+      )}
       {checkoutUrl && (
         <div className="mt-4">
           <QRCodeCanvas value={checkoutUrl} size={200} />
