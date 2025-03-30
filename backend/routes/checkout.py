@@ -3,7 +3,7 @@ import stripe
 import os
 
 from dependencies import get_current_user
-from models.user import UserInDB
+from models import UserInDB
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
@@ -16,6 +16,8 @@ async def create_checkout_session(
 ):
     data = await request.json()
     amount = data.get("amount", 100)
+    stripe_id = data.get("stripe_id")
+    print(stripe_id)
 
     print("Creating payment for:", current_user.email)
 
@@ -36,6 +38,7 @@ async def create_checkout_session(
             "user_id": str(current_user.id),
             "email": current_user.email,
         },
+        stripe_account=stripe_id
     )
 
     return {"url": session.url}

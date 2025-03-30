@@ -23,12 +23,11 @@ export default function Nav() {
       </div>
 
       <div className="flex items-center space-x-4">
-        <Button variant="ghost" asChild>
-          <Link to="/dashboard">Dashboard</Link>
-        </Button>
-
         {isAuthenticated ? (
           <>
+            <Button variant="ghost" asChild>
+              <Link to="/dashboard">Dashboard</Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link to="/payment">Create QR</Link>
             </Button>
@@ -43,6 +42,7 @@ export default function Nav() {
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <Separator />
                 <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuItem>Payments</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => logout()}>
                   Log out
                 </DropdownMenuItem>

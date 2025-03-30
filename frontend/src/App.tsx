@@ -4,6 +4,9 @@ import useAuthStore from "@/store/useAuthStore";
 import ProtectedRoute from "@/components/protected";
 
 import HomePage from "@/pages/home";
+import DashboardPage from "./pages/Dashboard";
+import DashboardHome from "./pages/Dashboard/DashboardHome";
+import StripeLinkedPage from "./pages/Dashboard/StripeLinked";
 import SignUpPage from "@/pages/Signup/signup";
 import LoginPage from "@/pages/Login";
 import PaymentPage from "@/pages/Payment";
@@ -14,7 +17,21 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route
+        path="/"
+        element={isAuthenticated ? <Navigate to="/dashboard" /> : <HomePage />}
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<DashboardHome />} />
+        <Route path="stripe-linked" element={<StripeLinkedPage />} />
+      </Route>
       <Route
         path="/signup"
         element={isAuthenticated ? <Navigate to="/" /> : <SignUpPage />}

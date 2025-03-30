@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 import stripe
 import os
 
@@ -6,24 +6,58 @@ from db import get_db_async
 from models import SignUpRequest, LoginRequest
 from utils import hash_password, verify_password
 from core import create_access_token
+from dependencies import get_current_user, validate_jwt
+from models import UserInDB
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 router = APIRouter()
 
-@router.post("/onboard")
-async def create_account_link():
+@router.get("/link_stripe", dependencies=[Depends(get_current_user)])
+async def link_stripe():
     account = stripe.Account.create(type="standard")
-    callback_url = "http://localhost:5173/merchant/onboarding"
+    callback_url = "http://localhost:5173/dashboard"
 
     account_link = stripe.AccountLink.create(
         account=account.id,
-        refresh_url=f"{callback_url}/refresh",
-        return_url=f"{callback_url}/complete?account_id={account.id}",
+        refresh_url=f"{callback_url}/stripe-linked",
+        return_url=f"{callback_url}/stripe-linked?account_id={account.id}",
         type="account_onboarding",
     )
 
     return {"url": account_link.url, "account_id": account.id}
+
+
+@router.post("/link_stripe")
+async def link_stripe(payload: dict, current_user: UserInDB = Depends(get_current_user)):
+    account_id = payload.get("account_id")
+    if not account_id:
+        raise HTTPException(status_code=400, detail="Invalid account id")
+    
+    db = await get_db_async("blanqr")
+    users_collection = db["users"]
+    user = await users_collection.find_one({"_id": current_user.id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    await users_collection.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"stripe_user_id": account_id}}
+    )
+
+    return {"message": "Stripe account linked successfully"}
+
+
+@router.get("/status")
+async def get_stripe_status(current_user: UserInDB = Depends(get_current_user)):
+    db = await get_db_async("blanqr")
+    users_collection = db["users"]
+    user = await users_collection.find_one({"_id": current_user.id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"stripe_user_id": user["stripe_user_id"]}
+
 
 @router.post("/signup")
 async def signup(user: SignUpRequest):
@@ -46,6 +80,7 @@ async def signup(user: SignUpRequest):
     new_user["_id"] = str(_id.inserted_id)
 
     return {"message": "User created successfully", "user": new_user}
+
 
 @router.post("/login")
 async def login(payload: LoginRequest):

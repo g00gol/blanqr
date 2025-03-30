@@ -1,1 +1,1 @@
-from .auth import get_current_user
+from .auth import validate_jwt, get_current_user

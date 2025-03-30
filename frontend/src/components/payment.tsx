@@ -1,17 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 
 export default function Payment() {
   const [checkoutUrl, setCheckoutUrl] = useState("");
+  const [stripeAccountId, setStripeAccountId] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const access_token = localStorage.getItem("access_token");
+      const res = await fetch("http://localhost:8000/merchant/status", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${access_token}`,
+        },
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        if (result.stripe_user_id) {
+          setStripeAccountId(result.stripe_user_id);
+        } else {
+          console.log("Stripe account not linked");
+        }
+      }
+    })();
+  }, []);
 
   const createCheckout = async () => {
-    const res = await fetch("http://localhost:8000/checkout", {
+    const access_token = localStorage.getItem("access_token");
+    const res = await fetch(`http://localhost:8000/checkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        Authorization: `Bearer ${access_token}`,
       },
-      body: JSON.stringify({ amount: 500 }),
+      body: JSON.stringify({ amount: 500, stripe_id: stripeAccountId }),
     });
     const data = await res.json();
     setCheckoutUrl(data.url);
