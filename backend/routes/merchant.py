@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 import stripe
 import os
 
 from db import get_db_async
-from models import SignUpRequest, LoginRequest, UserInDB
+from models import SignUpRequest, LoginRequest
 from utils import hash_password, verify_password
+from core import create_access_token
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
@@ -31,11 +32,10 @@ async def signup(user: SignUpRequest):
 
     existing_user = await users_collection.find_one({"email": user.email})
     if existing_user:
-        return {"message": "User already exists"}
+        raise HTTPException(status_code=400, detail="User already exists")
 
     new_user = {
         "email": user.email,
-        "username": user.username,
         "first_name": user.firstName,
         "last_name": user.lastName,
         "hashed_password": hash_password(user.password),
@@ -48,17 +48,18 @@ async def signup(user: SignUpRequest):
     return {"message": "User created successfully", "user": new_user}
 
 @router.post("/login")
-async def login(user: LoginRequest):
-    db = await get_db_async("blanqr")
-    users_collection = db["users"]
+async def login(payload: LoginRequest):
+    db = await get_db_async()
+    user = await db["users"].find_one({"email": payload.email})
+    if not user or not verify_password(payload.password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    existing_user: UserInDB = await users_collection.find_one({"email": user.email})
-    if not existing_user:
-        return {"message": "User not found"}
-
-    if not verify_password(user.password, existing_user["hashed_password"]):
-        return {"message": "Invalid credentials"}
-    
-    existing_user["_id"] = str(existing_user["_id"])
-
-    return {"message": "Login successful", "user": existing_user}
+    token = create_access_token({"sub": str(user["_id"])})
+    return {
+        "access_token": token,
+        "user": {
+            "id": str(user["_id"]),
+            "email": user["email"],
+            "username": user["username"],
+        }
+    }

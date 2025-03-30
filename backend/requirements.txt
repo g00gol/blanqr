@@ -7,3 +7,5 @@ motor
 pydantic
 pydantic[email]
 bcrypt
+python-jose[cryptography]
+pydantic-settings

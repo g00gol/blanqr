@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import useAuthStore from "@/store/useAuthStore";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -55,6 +56,8 @@ function TextInputField({
 }
 
 export default function LoginCard() {
+  const { setIsAuthenticated } = useAuthStore((state) => state);
+
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -73,13 +76,22 @@ export default function LoginCard() {
         body: JSON.stringify(data),
       });
 
-      if (!res.ok) throw new Error("Login failed");
-
       const result = await res.json();
-      console.log("Login successful:", result);
-      // Redirect or store token here
+      if (!res.ok) {
+        return form.setError("email", {
+          message: result.detail,
+        });
+      }
+
+      console.log("Login success:", result);
+      localStorage.setItem("access_token", result.access_token);
+      localStorage.setItem("user", JSON.stringify(result.user));
+      setIsAuthenticated();
     } catch (error) {
       console.error("Login error:", error);
+      form.setError("root", {
+        message: "An error occurred, please try again",
+      });
     }
   }
 

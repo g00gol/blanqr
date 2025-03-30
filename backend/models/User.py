@@ -10,7 +10,7 @@ class PyObjectId(ObjectId):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v, info):
         if isinstance(v, ObjectId):
             return v
         if not ObjectId.is_valid(v):
@@ -27,7 +27,6 @@ class PyObjectId(ObjectId):
 
 class UserBase(BaseModel):
     email: EmailStr
-    username: str
     first_name: str
     last_name: str
     stripe_user_id: Optional[str] = None
@@ -49,7 +48,6 @@ class UserInDB(UserBase):
 
 class SignUpRequest(BaseModel):
     email: EmailStr
-    username: str
     firstName: str
     lastName: str
     password: str

@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 
-export default function PaymentPage() {
+export default function Payment() {
   const [checkoutUrl, setCheckoutUrl] = useState("");
 
   const createCheckout = async () => {
     const res = await fetch("http://localhost:8000/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: 500 }), // $5
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      },
+      body: JSON.stringify({ amount: 500 }),
     });
     const data = await res.json();
     setCheckoutUrl(data.url);

@@ -1,6 +1,8 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,11 +16,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   password: z
@@ -40,11 +40,6 @@ const fields: {
   description?: string;
 }[] = [
   { name: "email", label: "Email" },
-  {
-    name: "username",
-    label: "Username",
-    description: "This will be your public display name",
-  },
   { name: "firstName", label: "First Name" },
   { name: "lastName", label: "Last Name" },
   {
@@ -88,11 +83,12 @@ function TextInputField({
 }
 
 export default function SignUpCard() {
+  const navigate = useNavigate();
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
-      username: "",
       firstName: "",
       lastName: "",
       password: "",
@@ -109,17 +105,20 @@ export default function SignUpCard() {
         body: JSON.stringify(data),
       });
 
+      const result = await res.json();
       if (!res.ok) {
-        throw new Error("Failed to sign up");
+        return form.setError("email", {
+          message: result.detail,
+        });
       }
 
-      const result = await res.json();
-      console.log("Success:", result);
-
-      return result;
+      navigate("/login");
     } catch (error) {
       console.error("Signup error:", error);
-      // You can show a toast or error banner here too
+      // set error on form
+      form.setError("email", {
+        message: "An error occurred. Please try again.",
+      });
     }
   }
 
