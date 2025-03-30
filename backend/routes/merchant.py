@@ -3,7 +3,8 @@ import stripe
 import os
 
 from db import get_db_async
-from models import User
+from models import SignUpRequest, LoginRequest, UserInDB
+from utils import hash_password, verify_password
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
@@ -24,8 +25,8 @@ async def create_account_link():
     return {"url": account_link.url, "account_id": account.id}
 
 @router.post("/signup")
-async def signup(user: User):
-    db = await get_db_async()
+async def signup(user: SignUpRequest):
+    db = await get_db_async("blanqr")
     users_collection = db["users"]
 
     existing_user = await users_collection.find_one({"email": user.email})
@@ -37,7 +38,7 @@ async def signup(user: User):
         "username": user.username,
         "first_name": user.firstName,
         "last_name": user.lastName,
-        "password": user.password,
+        "hashed_password": hash_password(user.password),
         "stripe_user_id": None,
     }
 
@@ -45,3 +46,19 @@ async def signup(user: User):
     new_user["_id"] = str(_id.inserted_id)
 
     return {"message": "User created successfully", "user": new_user}
+
+@router.post("/login")
+async def login(user: LoginRequest):
+    db = await get_db_async("blanqr")
+    users_collection = db["users"]
+
+    existing_user: UserInDB = await users_collection.find_one({"email": user.email})
+    if not existing_user:
+        return {"message": "User not found"}
+
+    if not verify_password(user.password, existing_user["hashed_password"]):
+        return {"message": "Invalid credentials"}
+    
+    existing_user["_id"] = str(existing_user["_id"])
+
+    return {"message": "Login successful", "user": existing_user}

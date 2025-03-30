@@ -1,1 +1,1 @@
-from .User import User
+from .user import SignUpRequest, LoginRequest, UserInDB, UserPublic
